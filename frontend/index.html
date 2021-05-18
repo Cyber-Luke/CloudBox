@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="CloudBox Fileservice - Sichere Datei-Verwaltung"
+    />
+    <meta name="author" content="Lukas Ernst" />
+    <title>CloudBox - Fileservice</title>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <script type="text/javascript" src="config.js" defer></script>
+    <script type="text/javascript" src="app.js" defer></script>
+  </head>
+
+  <body>
+    <main id="app">
+      <!-- Login Section -->
+      <section id="login" class="login-section">
+        <h1 class="main-title">CloudBox Fileservice</h1>
+        <h2 class="subtitle">Bitte loggen Sie sich ein</h2>
+        <form id="loginForm" class="login-form">
+          <div class="input-group">
+            <input
+              type="text"
+              id="username"
+              placeholder="Benutzername"
+              required
+              aria-label="Benutzername"
+            />
+          </div>
+          <div class="input-group">
+            <input
+              type="password"
+              id="password"
+              placeholder="Passwort"
+              required
+              aria-label="Passwort"
+            />
+          </div>
+          <button type="submit" id="loginbutton" class="btn btn-primary">
+            Login
+          </button>
+        </form>
+      </section>
+
+      <!-- Main Application Section -->
+      <section id="page" class="main-page" style="display: none">
+        <!-- Add Folder/Create Text File Dialog -->
+        <dialog id="addOrdner" class="dialog">
+          <form
+            id="addForm"
+            class="dialog-form"
+            aria-labelledby="addDialogTitle"
+          >
+            <h3 id="addDialogTitle" class="dialog-title">
+              Neu: Ordner oder Textdatei
+            </h3>
+            <div class="toggle-container">
+              <span class="toggle-label">Ordner</span>
+              <label class="switch">
+                <input id="checkbox" type="checkbox" />
+                <span class="slider round"></span>
+              </label>
+              <span class="toggle-label">Text</span>
+            </div>
+            <div class="input-group">
+              <input
+                type="text"
+                id="ordnername"
+                placeholder="Name eingeben"
+                required
+              />
+            </div>
+            <div class="input-group">
+              <textarea
+                id="btext"
+                placeholder="Textinhalt eingeben"
+                rows="4"
+                cols="50"
+                style="display: none"
+              ></textarea>
+            </div>
+            <div class="button-group">
+              <button type="submit" class="btn btn-primary">Hinzufügen</button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-dialog-close="addOrdner"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        </dialog>
+
+        <!-- Upload Dialog -->
+        <dialog id="uploadDialog" class="dialog">
+          <form
+            id="uploadForm"
+            class="dialog-form"
+            aria-labelledby="uploadDialogTitle"
+          >
+            <h3 id="uploadDialogTitle" class="dialog-title">Datei hochladen</h3>
+            <div class="input-group">
+              <input id="file" type="file" required />
+            </div>
+            <div class="button-group">
+              <button type="submit" class="btn btn-primary">Hochladen</button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-dialog-close="uploadDialog"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        </dialog>
+
+        <!-- Text Edit Dialog -->
+        <dialog id="bearbeitenDialog" class="dialog">
+          <form
+            id="editForm"
+            class="dialog-form"
+            aria-labelledby="editDialogTitle"
+          >
+            <h3 id="editDialogTitle" class="dialog-title">
+              Textdatei bearbeiten
+            </h3>
+            <div class="input-group">
+              <textarea
+                id="dtext"
+                placeholder="Text bearbeiten"
+                rows="8"
+                cols="60"
+                required
+              ></textarea>
+            </div>
+            <div class="button-group">
+              <button type="submit" class="btn btn-primary">Speichern</button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-dialog-close="bearbeitenDialog"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        </dialog>
+        <header class="topbar" role="banner">
+          <div class="topbar-left">
+            <button type="button" id="back" class="btn btn-secondary" disabled>
+              Zurück
+            </button>
+          </div>
+          <div class="topbar-center">
+            <h1 class="brand">CloudBox</h1>
+            <p class="current-path" aria-live="polite">
+              <strong>Data Path:</strong> <span id="verzeichnis">/</span>
+            </p>
+          </div>
+          <div class="topbar-right" role="toolbar" aria-label="Dateiaktionen">
+            <button
+              type="button"
+              id="add"
+              class="btn btn-primary"
+              data-dialog-open="addOrdner"
+            >
+              Hinzufügen
+            </button>
+            <button
+              type="button"
+              id="upload"
+              class="btn btn-primary"
+              data-dialog-open="uploadDialog"
+            >
+              Upload
+            </button>
+            <button type="button" id="logout" class="btn btn-danger">
+              Logout
+            </button>
+          </div>
+        </header>
+
+        <!-- File actions in header area (dynamic) -->
+        <div id="filebar" class="filebar" hidden>
+          <a id="downloadHeader" class="btn btn-primary" download>Download</a>
+          <button id="editHeader" class="btn btn-secondary" type="button">
+            Bearbeiten
+          </button>
+        </div>
+
+        <div id="ordnercontent" class="content-grid" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <!-- Toast notifications container -->
+    <div
+      id="toast-container"
+      class="toast-container"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+
+    <!-- Loading overlay -->
+    <div id="loading" class="loading-overlay" hidden>
+      <div class="spinner" role="status" aria-label="Laden">
+        <span class="visually-hidden">Laden…</span>
+      </div>
+    </div>
+  </body>
+</html>

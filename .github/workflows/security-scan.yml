@@ -1,0 +1,63 @@
+name: Docker Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run monthly on the 1st at 2 AM UTC
+    - cron: "0 2 1 * *"
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "php:8.3-apache"
+          format: "sarif"
+          output: "trivy-results.sarif"
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      - name: Build Docker image
+        run: |
+          cd backend
+          docker build -t cloudbox-backend:test .
+
+      - name: Scan built image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "cloudbox-backend:test"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH"
+
+  auto-merge-updates:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.actor == 'renovate[bot]'
+    needs: security-scan
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Auto-merge Renovate PRs
+        uses: pascalgn/merge-action@v0.15.6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          merge_method: squash
+          merge_commit_title: "chore: {pull_request_title}"
+          merge_commit_message: "Auto-merged security/dependency update"
